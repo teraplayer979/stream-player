@@ -1,49 +1,85 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Video Player</title>
+    <meta charset="UTF-8">
+    <title>Video Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <!-- HLS.js for m3u8 playback -->
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
 
-<style>
-body {
-    margin: 0;
-    background: black;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-}
-video {
-    width: 100%;
-    max-width: 900px;
-    height: auto;
-    background: black;
-}
-</style>
+    <style>
+        body {
+            margin: 0;
+            background: black;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            font-family: Arial, sans-serif;
+            color: white;
+        }
+
+        #container {
+            width: 100%;
+            max-width: 900px;
+            text-align: center;
+        }
+
+        video {
+            width: 100%;
+            height: auto;
+            background: black;
+        }
+
+        #message {
+            margin-top: 15px;
+            color: #ccc;
+        }
+    </style>
 </head>
-
 <body>
 
-<video id="video" controls autoplay></video>
+<div id="container">
+    <video id="video" controls autoplay></video>
+    <div id="message">Loading video...</div>
+</div>
 
 <script>
-const params = new URLSearchParams(window.location.search);
-const videoSrc = params.get("video");
+    const params = new URLSearchParams(window.location.search);
+    let videoUrl = params.get("url");
 
-const video = document.getElementById("video");
+    const video = document.getElementById("video");
+    const message = document.getElementById("message");
 
-if (videoSrc) {
-    if (video.canPlayType("application/vnd.apple.mpegurl")) {
-        video.src = videoSrc;
-    } else if (Hls.isSupported()) {
-        const hls = new Hls();
-        hls.loadSource(videoSrc);
-        hls.attachMedia(video);
+    if (!videoUrl) {
+        message.textContent = "No video URL provided.";
+    } else {
+        // Proper decoding
+        videoUrl = decodeURIComponent(videoUrl);
+
+        // If HLS stream
+        if (videoUrl.includes(".m3u8")) {
+            if (Hls.isSupported()) {
+                const hls = new Hls();
+                hls.loadSource(videoUrl);
+                hls.attachMedia(video);
+                message.textContent = "Streaming video...";
+            } 
+            else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                video.src = videoUrl;
+                message.textContent = "Streaming video...";
+            } 
+            else {
+                message.textContent = "Your browser does not support this video format.";
+            }
+        } 
+        // Normal video file
+        else {
+            video.src = videoUrl;
+            message.textContent = "Playing video...";
+        }
     }
-}
 </script>
 
 </body>
