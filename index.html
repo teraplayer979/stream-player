@@ -35,27 +35,35 @@ const params = new URLSearchParams(window.location.search);
 let streamUrl = params.get("url");
 
 if (!streamUrl) {
-    alert("No video URL found.");
+    document.body.innerHTML = "<h2 style='color:white'>No stream URL found</h2>";
     throw new Error("Missing URL");
 }
 
-// Decode URL properly
-streamUrl = decodeURIComponent(streamUrl);
+// Fix double encoding
+try {
+    streamUrl = decodeURIComponent(streamUrl);
+    if (streamUrl.includes("%")) {
+        streamUrl = decodeURIComponent(streamUrl);
+    }
+} catch (e) {}
 
-// If HLS stream
+// Debug
+console.log("Final stream URL:", streamUrl);
+
+// HLS stream
 if (streamUrl.includes(".m3u8")) {
     if (Hls.isSupported()) {
         const hls = new Hls();
         hls.loadSource(streamUrl);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, function () {
-            video.play().catch(()=>{});
+            video.play().catch(() => {});
         });
     } else {
         video.src = streamUrl;
     }
-} 
-// Direct video
+}
+// Direct video (mp4, mkv etc.)
 else {
     video.src = streamUrl;
 }
