@@ -1,60 +1,100 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Stream Player</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stream Player</title>
+    
+    <link rel="stylesheet" href="https://cdn.plyr.io/3.7.8/plyr.css" />
+    <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+    <script src="https://cdn.plyr.io/3.7.8/plyr.polyfilled.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
-
-<style>
-body {
-    margin: 0;
-    background: black;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    color: white;
-    font-family: Arial, sans-serif;
-}
-video {
-    width: 100%;
-    max-width: 900px;
-    background: black;
-}
-</style>
+    <style>
+        body {
+            margin: 0;
+            background: #000;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            color: white;
+            font-family: sans-serif;
+        }
+        .container {
+            width: 100%;
+            max-width: 900px;
+        }
+        #loading {
+            position: absolute;
+            z-index: 10;
+        }
+    </style>
 </head>
-
 <body>
 
-<video id="video" controls autoplay></video>
+    <div id="loading">Checking stream...</div>
 
-<script>
-const video = document.getElementById("video");
+    <div class="container">
+        <video id="player" playsinline controls crossorigin></video>
+    </div>
 
-// Get raw URL (NO decoding)
-const params = new URLSearchParams(window.location.search);
-const streamUrl = params.get("url");
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const video = document.getElementById('player');
+            const loading = document.getElementById('loading');
 
-if (!streamUrl) {
-    document.body.innerHTML = "<h2>No video URL provided</h2>";
-} else {
-    if (streamUrl.endsWith(".m3u8")) {
-        if (Hls.isSupported()) {
-            const hls = new Hls();
-            hls.loadSource(streamUrl);
-            hls.attachMedia(video);
-        } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-            video.src = streamUrl;
-        } else {
-            document.body.innerHTML = "<h2>Stream not supported</h2>";
-        }
-    } else {
-        video.src = streamUrl;
-    }
-}
-</script>
+            // 1. Properly extract and decode the URL
+            const urlParams = new URLSearchParams(window.location.search);
+            const rawUrl = urlParams.get('url');
 
+            if (!rawUrl) {
+                loading.innerHTML = "<h2>Error: No Video URL found</h2>";
+                return;
+            }
+
+            // Ensure full decoding of the stream link
+            const streamUrl = decodeURIComponent(rawUrl);
+
+            // 2. Initialize Plyr
+            const player = new Plyr(video, {
+                autoplay: false, // Set to true if you want to try, but many browsers block it
+                keyboard: { focused: true, global: true },
+                tooltips: { controls: true, seek: true }
+            });
+
+            // 3. Detect if it's HLS (.m3u8) or Direct Video
+            // We check for .m3u8 in the URL or the presence of 'm3u8' in the link
+            if (streamUrl.includes('.m3u8') || streamUrl.includes('m3u8')) {
+                if (Hls.isSupported()) {
+                    const hls = new Hls();
+                    hls.loadSource(streamUrl);
+                    hls.attachMedia(video);
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        loading.style.display = 'none';
+                        // video.play(); // Usually blocked by browsers
+                    });
+                } 
+                else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+                    video.src = streamUrl;
+                    video.addEventListener('loadedmetadata', () => {
+                        loading.style.display = 'none';
+                    });
+                }
+            } else {
+                // Direct MP4/MKV (MKV may not work in all browsers, MP4 is best)
+                video.src = streamUrl;
+                video.addEventListener('canplay', () => {
+                    loading.style.display = 'none';
+                });
+            }
+
+            // Error handling
+            video.addEventListener('error', () => {
+                loading.style.display = 'block';
+                loading.innerHTML = "<h2>Format not supported or Token expired</h2>";
+            });
+        });
+    </script>
 </body>
 </html>
