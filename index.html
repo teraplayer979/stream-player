@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Video Player</title>
+
+<script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
+
+<style>
+body {
+    margin: 0;
+    background: black;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+video {
+    width: 100%;
+    max-width: 900px;
+    height: auto;
+    background: black;
+}
+</style>
+</head>
+
+<body>
+
+<video id="video" controls autoplay></video>
+
+<script>
+const params = new URLSearchParams(window.location.search);
+const videoSrc = params.get("video");
+
+const video = document.getElementById("video");
+
+if (videoSrc) {
+    if (video.canPlayType("application/vnd.apple.mpegurl")) {
+        video.src = videoSrc;
+    } else if (Hls.isSupported()) {
+        const hls = new Hls();
+        hls.loadSource(videoSrc);
+        hls.attachMedia(video);
+    }
+}
+</script>
+
+</body>
+</html>
